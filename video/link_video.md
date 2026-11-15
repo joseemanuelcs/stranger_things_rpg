@@ -1,5 +1,3 @@
-# Video de gameplay
+Link referênte ao trabalho
 
-Substitua esta linha pelo link publico ou nao listado para o video narrado (maximo 10 minutos).
-
-Sugestao de roteiro: apresentacao, compilacao, criacao do personagem, movimentacao e coleta, combate/defesa/XP, as tres fases, vitoria/derrota e breve explicacao de struct/enum/ponteiros.
+https://drive.google.com/drive/folders/14WhJu75_RsOJ5edh6tpRqkQyVT1d2Afu?usp=sharing

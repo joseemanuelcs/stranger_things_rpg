@@ -7,7 +7,10 @@ all: jogo_mac
 jogo_mac: $(SRC) $(wildcard include/*.h)
 	$(CC) $(CFLAGS) $(SRC) -o $@
 
+run: jogo_mac
+	./jogo_mac
+
 clean:
 	rm -f jogo_mac
 
-.PHONY: all clean
+.PHONY: all run clean

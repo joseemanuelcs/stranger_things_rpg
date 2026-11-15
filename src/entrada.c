@@ -11,7 +11,6 @@ int lerLinha(char *destino, int tamanho) {
     if (n > 0 && destino[n - 1] == '\n') {
         destino[n - 1] = '\0';
     } else if (!feof(stdin)) {
-        /* Consome o restante de linhas grandes, sem contaminar a proxima entrada. */
         while ((c = getchar()) != '\n' && c != EOF) {}
     }
     return 1;

@@ -32,7 +32,6 @@ void iniciarNovaFase(Tabuleiro *t, int numeroFase) {
         t->mapa[i] = CASA_VAZIA;
         t->objetivosEncontrados[i] = 0;
     }
-    /* Os objetivos sao encontrados ao passar pelas casas: nunca ficam inacessiveis. */
     t->mapa[5] = CASA_OBJETIVO;
     t->mapa[12] = CASA_OBJETIVO;
     t->mapa[17] = CASA_OBJETIVO;
@@ -84,7 +83,6 @@ int missaoCumprida(const Tabuleiro *t) {
     return t->objetivosColetados == TOTAL_OBJETIVOS && t->chefeDerrotado;
 }
 
-/* Retorna 0 quando a entrada foi encerrada; 1 nos demais casos. */
 int executarEventoCasa(Tabuleiro *t, Personagem *p) {
     int indice;
     Monstro inimigo;
@@ -107,7 +105,6 @@ int executarEventoCasa(Tabuleiro *t, Personagem *p) {
             printf(">> Armadilha do Mundo Invertido! Vida atual: %d.\n", p->vida);
             break;
         case CASA_MONSTRO:
-            /* Casas 9 e 14 representam os dois inimigos comuns de cada fase. */
             indice = t->posicaoAtual == 9 ? 0 : 1;
             if (t->monstrosDerrotados[indice]) {
                 puts(">> Este monstro ja foi derrotado. Caminho livre!");

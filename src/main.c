@@ -35,7 +35,6 @@ int main(void) {
             coletarObjetivos(&mapa, anterior);
             if (!executarEventoCasa(&mapa, &jogador)) return 1;
             if (mapa.posicaoAtual == mapa.totalCasas - 1 && !missaoCumprida(&mapa) && jogador.vida > 0) {
-                /* O jogador tem uma nova tentativa contra o chefe, sem avancar alem do tabuleiro. */
                 mapa.posicaoAtual = mapa.totalCasas - 4;
                 puts("\n>> Voce recuou tres casas para tentar novamente.");
             }
@@ -47,7 +46,6 @@ int main(void) {
             printf("Missao concluida: 3 %s e %s derrotado!\n", nomeObjetivo(fase), nomeChefe(fase));
             exibirStatus(&jogador);
             if (fase < 3) {
-                /* Pequena recuperacao entre fases, sem perder XP e atributos. */
                 jogador.vida += 30;
                 if (jogador.vida > jogador.vidaMax) jogador.vida = jogador.vidaMax;
                 puts("\nVoce recuperou ate 30 de vida antes da proxima fase.");

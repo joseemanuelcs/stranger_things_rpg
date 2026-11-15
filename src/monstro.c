@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include "monstro.h"
 
-/* Tres inimigos diferentes em cada fase, com o indice 2 reservado para o chefe. */
 Monstro criarMonstro(int fase, int indice) {
     static const Monstro base[3][3] = {
         {

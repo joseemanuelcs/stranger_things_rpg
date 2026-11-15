@@ -3,87 +3,135 @@
 #include "fase.h"
 #include "combate.h"
 
-void inicializarTabuleiro(Tabuleiro *t) {
-    t->posicaoAtual = 0;
-    t->totalCasas = 20;
-    t->bateriasColetadas = 0;
-
-    for (int i = 0; i < t->totalCasas; i++) {
-        t->mapa[i] = CASA_VAZIA;
+const char *nomeObjetivo(int fase) {
+    switch (fase) {
+        case 1: return "Baterias de Walkie-Talkie";
+        case 2: return "Componentes do Portal";
+        case 3: return "Fragmentos de Protecao";
+        default: return "Itens";
     }
-
-    // Posições dos eventos no mapa de Hawkins
-    t->mapa[3]  = CASA_ARMADILHA;
-    t->mapa[5]  = CASA_CURA;       // Kit de Vida / Bateria
-    t->mapa[9]  = CASA_MONSTRO;
-    t->mapa[12] = CASA_CURA;       // Kit de Vida / Bateria
-    t->mapa[15] = CASA_ARMADILHA;
-    t->mapa[17] = CASA_CURA;       // Kit de Vida / Bateria
-    t->mapa[19] = CASA_CHEFÃO;     // Portal do Vecna
+}
+const char *nomeChefe(int fase) {
+    switch (fase) {
+        case 1: return "Demogorgon";
+        case 2: return "Devorador de Mentes";
+        case 3: return "Vecna";
+        default: return "Chefe";
+    }
 }
 
-int rolarDado(void) {
-    return (rand() % 6) + 1;
+void iniciarNovaFase(Tabuleiro *t, int numeroFase) {
+    int i;
+    t->faseAtual = numeroFase;
+    t->posicaoAtual = 0;
+    t->totalCasas = TOTAL_CASAS;
+    t->objetivosColetados = 0;
+    t->chefeDerrotado = 0;
+    for (i = 0; i < 3; i++) t->monstrosDerrotados[i] = 0;
+    for (i = 0; i < TOTAL_CASAS; i++) {
+        t->mapa[i] = CASA_VAZIA;
+        t->objetivosEncontrados[i] = 0;
+    }
+    /* Os objetivos sao encontrados ao passar pelas casas: nunca ficam inacessiveis. */
+    t->mapa[5] = CASA_OBJETIVO;
+    t->mapa[12] = CASA_OBJETIVO;
+    t->mapa[17] = CASA_OBJETIVO;
+    t->mapa[3] = CASA_ARMADILHA;
+    t->mapa[7] = CASA_CURA;
+    t->mapa[9] = CASA_MONSTRO;
+    t->mapa[14] = CASA_MONSTRO;
+    t->mapa[16] = CASA_CURA;
+    t->mapa[19] = CASA_CHEFE;
+    printf("\n==========================================\n");
+    printf("      FASE %d / 3\n", numeroFase);
+    puts("==========================================");
+    if (numeroFase == 1) puts("O DESAPARECIMENTO EM HAWKINS");
+    else if (numeroFase == 2) puts("A AMEACA DO DEVORADOR DE MENTES");
+    else puts("O CONFRONTO FINAL: VECNA");
+    printf("Missao: encontre 3 %s e derrote %s.\n", nomeObjetivo(numeroFase), nomeChefe(numeroFase));
+    puts("Regras: os itens sao coletados ao atravessar as casas; a luta contra o chefe exige os tres itens.");
 }
+
+int rolarDado(void) { return rand() % 6 + 1; }
 
 void desenharTabuleiro(const Tabuleiro *t) {
-    printf("\nMAPA DE HAWKINS:\n");
-    for (int i = 0; i < t->totalCasas; i++) {
-        if (i == t->posicaoAtual) {
-            printf("[ P ] "); // P = Posição do Jogador
-        } else if (t->mapa[i] == CASA_CHEFÃO) {
-            printf("[ V ] "); // V = Vecna (Boss)
-        } else {
-            printf("[   ] ");
-        }
+    int i;
+    printf("\nMAPA DE HAWKINS - FASE %d\n", t->faseAtual);
+    for (i = 0; i < t->totalCasas; i++) {
+        if (i == t->posicaoAtual) printf("[P]");
+        else if (t->mapa[i] == CASA_CHEFE) printf("[C]");
+        else if (t->mapa[i] == CASA_OBJETIVO && !t->objetivosEncontrados[i]) printf("[?]");
+        else printf("[ ]");
+        if ((i + 1) % 10 == 0) putchar('\n');
     }
-    printf("\nBaterias do Walkie-Talkie: %d/3\n", t->bateriasColetadas);
+    printf("Posicao: %d/%d | %s: %d/3 | Chefe: %s\n",
+           t->posicaoAtual + 1, t->totalCasas, nomeObjetivo(t->faseAtual),
+           t->objetivosColetados, t->chefeDerrotado ? "derrotado" : "vivo");
 }
 
-void executarEventoCasa(Tabuleiro *t, Personagem *p) {
-    printf("\n[LOCALIZACAO] Casa %d de %d.\n", t->posicaoAtual + 1, t->totalCasas);
-
-    switch (t->mapa[t->posicaoAtual]) {
-        case CASA_VAZIA:
-            printf(">> Tudo quieto nas ruas de Hawkins... Continue atento!\n");
-            break;
-
-        case CASA_CURA:
-            printf(">> VOCE ENCONTROU UMA BATERIA E WAFFLES!\n");
-            t->bateriasColetadas++;
-            p->vida += 20;
-            if (p->vida > p->vidaMax) p->vida = p->vidaMax;
-            printf(">> Recuperou 20 de vida! Baterias para chamar reforcos: %d/3\n", t->bateriasColetadas);
-            break;
-
-        case CASA_ARMADILHA:
-            printf(">> ALERTA! Tentaculos do Mundo Invertido surgiram do chao!\n");
-            receberDanoHeroi(p, 15);
-            printf(">> Voce perdeu 15 de vida ao escapar!\n");
-            break;
-
-        case CASA_MONSTRO: {
-            // Sorteia entre Democão (0) e Demogorgon (1)
-            int sorteio = rand() % 2;
-            Monstro inimigo;
-
-            if (sorteio == 0) {
-                printf(">> ALERTA! Um BANDO DE DEMOCÃES emboscou voce!\n");
-                inimigo = criarDemocao();
-            } else {
-                printf(">> UIVO NO CORREDOR! Um DEMOGORGON apareceu diante de voce!\n");
-                inimigo = criarDemogorgon();
-            }
-
-            iniciarCombate(p, &inimigo);
-            break;
-        }
-
-        case CASA_CHEFÃO: {
-            printf(">> O RELOGIO BADALA... VECNA ESTA ESPERANDO POR VOCE!\n");
-            Monstro vecna = criarVecna(); // Usa o construtor do chefe final
-            iniciarCombate(p, &vecna);
-            break;
+void coletarObjetivos(Tabuleiro *t, int posicaoAnterior) {
+    int i;
+    for (i = posicaoAnterior + 1; i <= t->posicaoAtual; i++) {
+        if (t->mapa[i] == CASA_OBJETIVO && !t->objetivosEncontrados[i]) {
+            t->objetivosEncontrados[i] = 1;
+            t->objetivosColetados++;
+            printf(">> Voce encontrou um item: %s! (%d/3)\n", nomeObjetivo(t->faseAtual), t->objetivosColetados);
         }
     }
+}
+
+int missaoCumprida(const Tabuleiro *t) {
+    return t->objetivosColetados == TOTAL_OBJETIVOS && t->chefeDerrotado;
+}
+
+/* Retorna 0 quando a entrada foi encerrada; 1 nos demais casos. */
+int executarEventoCasa(Tabuleiro *t, Personagem *p) {
+    int indice;
+    Monstro inimigo;
+    ResultadoCombate resultado;
+    printf("\n[LOCALIZACAO] Casa %d de %d.\n", t->posicaoAtual + 1, t->totalCasas);
+    switch (t->mapa[t->posicaoAtual]) {
+        case CASA_VAZIA:
+            puts(">> Tudo quieto... por enquanto!");
+            break;
+        case CASA_OBJETIVO:
+            puts(">> Esta area continha um dos itens da missao.");
+            break;
+        case CASA_CURA:
+            p->vida += 20;
+            if (p->vida > p->vidaMax) p->vida = p->vidaMax;
+            puts(">> Voce encontrou Waffles e recuperou ate 20 de vida!");
+            break;
+        case CASA_ARMADILHA:
+            receberDanoHeroi(p, 10 + 5 * t->faseAtual);
+            printf(">> Armadilha do Mundo Invertido! Vida atual: %d.\n", p->vida);
+            break;
+        case CASA_MONSTRO:
+            /* Casas 9 e 14 representam os dois inimigos comuns de cada fase. */
+            indice = t->posicaoAtual == 9 ? 0 : 1;
+            if (t->monstrosDerrotados[indice]) {
+                puts(">> Este monstro ja foi derrotado. Caminho livre!");
+                break;
+            }
+            inimigo = criarMonstro(t->faseAtual, indice);
+            resultado = iniciarCombate(p, &inimigo, 0);
+            if (resultado == COMBATE_ENCERRADO) return 0;
+            if (resultado == COMBATE_VITORIA) t->monstrosDerrotados[indice] = 1;
+            break;
+        case CASA_CHEFE:
+            if (t->chefeDerrotado) {
+                puts(">> Chefe ja derrotado!");
+                break;
+            }
+            if (t->objetivosColetados < TOTAL_OBJETIVOS) {
+                puts(">> Falta concluir a coleta! O chefe nao pode ser enfrentado ainda.");
+                break;
+            }
+            inimigo = criarMonstro(t->faseAtual, 2);
+            resultado = iniciarCombate(p, &inimigo, 1);
+            if (resultado == COMBATE_ENCERRADO) return 0;
+            if (resultado == COMBATE_VITORIA) t->chefeDerrotado = 1;
+            break;
+    }
+    return 1;
 }

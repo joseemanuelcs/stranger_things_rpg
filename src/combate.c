@@ -1,95 +1,83 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "combate.h"  // <--- ESTA LINHA É A QUE FALTA!
+#include "combate.h"
+#include "entrada.h"
 
-int iniciarCombate(Personagem *p, Monstro *m) {
+static int maximo(int a, int b) { return a > b ? a : b; }
+
+ResultadoCombate iniciarCombate(Personagem *p, Monstro *m, int ehChefe) {
+    int turno = 1, usosEspeciais = 2;
     printf("\n==========================================\n");
-    printf("   BATALHA: %s VS %s!   \n", p->nome, m->nome);
-    printf("==========================================\n");
-
-    int turno = 1;
-    int especialUsos = 2; // O jogador pode usar o especial 2 vezes por batalha
-
+    printf("   BATALHA: %s VS %s!\n", p->nome, m->nome);
+    puts("==========================================");
+    exibirMonstro(m);
     while (p->vida > 0 && m->vida > 0) {
+        int opcao, defesaAtiva = 0, dano = 0;
         printf("\n--- TURNO %d ---\n", turno);
-        printf("%s - Vida: %d/%d\n", p->nome, p->vida, p->vidaMax);
-        printf("%s - Vida: %d\n", m->nome, m->vida);
-        
-        printf("\nEscolha sua acao:\n");
-        printf("1. Atacar\n");
-        printf("2. Usar Habilidade Especial (Usos restantes: %d)\n", especialUsos);
-        printf("3. Tentar Fugir\n");
-        printf("Opcao: ");
-
-        int opcao;
-        scanf("%d", &opcao);
-
-        if (opcao == 1) {
-            int sorte = (rand() % 6) + 1;
-            int danoCausado = (p->forca + sorte) - m->defesa;
-            if (danoCausado < 2) danoCausado = 2;
-
-            receberDanoMonstro(m, danoCausado);
-            printf("\n>> %s atacou o %s e causou %d de dano!\n", p->nome, m->nome, danoCausado);
-
-        } else if (opcao == 2) {
-            if (especialUsos > 0) {
-                especialUsos--; // Gasta 1 uso
-                int danoEspecial = 0;
-                
-                if (p->classe == CLASSE_ELEVEN) {
-                    printf("\n>> Eleven usou PODER TELEQUINÉTICO!\n");
-                    danoEspecial = p->forca * 3;
-                } else if (p->classe == CLASSE_DUSTIN) {
-                    printf("\n>> Dustin usou ESTRATÉGIA COM RADIO!\n");
-                    danoEspecial = p->forca * 2 + 5;
-                } else {
-                    printf("\n>> Hopper usou ATAQUE COM ESPINGARDA!\n");
-                    danoEspecial = p->forca * 2 + 10;
+        printf("%s: %d/%d HP | %s: %d HP\n", p->nome, p->vida, p->vidaMax, m->nome, m->vida);
+        puts("1. Atacar\n2. Defender\n3. Habilidade Especial\n4. Tentar Fugir");
+        printf("Habilidades restantes nesta batalha: %d\n", usosEspeciais);
+        if (!lerOpcao(1, 4, &opcao)) return COMBATE_ENCERRADO;
+        switch ((AcaoCombate)opcao) {
+            case ACAO_ATACAR:
+                dano = maximo(1, (rand() % 20 + 1) + p->forca - m->defesa);
+                receberDanoMonstro(m, dano);
+                printf(">> Ataque comum: %d de dano no %s!\n", dano, m->nome);
+                break;
+            case ACAO_DEFENDER:
+                defesaAtiva = 1;
+                puts(">> Voce se defendeu! Reducao do proximo ataque em 50%.");
+                break;
+            case ACAO_ESPECIAL:
+                if (usosEspeciais == 0) {
+                    puts(">> Sem habilidades especiais restantes! Escolha outra acao.");
+                    continue;
                 }
-
-                receberDanoMonstro(m, danoEspecial);
-                printf(">> Dano devastador de %d no %s!\n", danoEspecial, m->nome);
-            } else {
-                printf("\n>> Voce ja usou todas as suas habilidades especiais nesta batalha!\n");
-                continue; // Volta para o inicio do menu sem gastar o turno
-            }
-
-        } else if (opcao == 3) {
-            int chance = rand() % 2;
-            if (chance == 1) {
-                printf("\n>> VOCE CONSEGUIU FUGIR DO COMBATE!\n");
-                return 1;
-            } else {
-                printf("\n>> FALHA NA FUGA! O %s bloqueou seu caminho!\n", m->nome);
-            }
-        } else {
-            printf("\n>> Opcao invalida! Voce hesitou e perdeu a vez.\n");
+                usosEspeciais--;
+                if (p->classe == CLASSE_ELEVEN) {
+                    dano = maximo(1, p->inteligencia * 2 + (rand() % 12 + 1) - m->defesa);
+                    puts(">> Eleven usou PODER TELECINETICO!");
+                    receberDanoMonstro(m, dano);
+                } else if (p->classe == CLASSE_DUSTIN) {
+                    int cura = 10 + p->inteligencia / 2;
+                    p->vida += cura;
+                    if (p->vida > p->vidaMax) p->vida = p->vidaMax;
+                    dano = maximo(1, p->agilidade + (rand() % 12 + 1) - m->defesa);
+                    puts(">> Dustin usou ESTRATEGIA COM RADIO: distração e cura!");
+                    printf(">> Recuperou ate %d de vida.\n", cura);
+                    receberDanoMonstro(m, dano);
+                } else {
+                    dano = maximo(1, p->forca * 2 + (rand() % 12 + 1) - m->defesa);
+                    puts(">> Hopper usou ATAQUE COM ESPINGARDA!");
+                    receberDanoMonstro(m, dano);
+                }
+                printf(">> Habilidade causou %d de dano!\n", dano);
+                break;
+            case ACAO_FUGIR:
+                if (!ehChefe && (rand() % 100) < 35 + p->agilidade) {
+                    puts(">> FUGA BEM-SUCEDIDA! Sem recompensa.");
+                    return COMBATE_FUGA;
+                }
+                if (ehChefe && (rand() % 100) < 30) {
+                    puts(">> Voce fugiu do chefe. Ele continua vivo!");
+                    return COMBATE_FUGA;
+                }
+                puts(">> Falhou ao fugir. O inimigo vai atacar!");
+                break;
         }
-
-        // Contra-ataque do monstro
-        if (m->vida > 0) {
-            int sorteMonstro = (rand() % 4) + 1;
-            int danoRecebido = (m->ataque + sorteMonstro) - p->defesa;
-            if (danoRecebido < 1) danoRecebido = 1;
-
-            receberDanoHeroi(p, danoRecebido);
-            printf(">> O %s contra-atacou e causou %d de dano em voce!\n", m->nome, danoRecebido);
-        }
-
+        if (m->vida <= 0) break;
+        dano = maximo(1, (rand() % 20 + 1) + m->ataque - p->defesa);
+        if (defesaAtiva) dano = maximo(1, (dano + 1) / 2);
+        receberDanoHeroi(p, dano);
+        printf(">> %s contra-atacou: %d de dano.\n", m->nome, dano);
         turno++;
     }
-
-    if (p->vida > 0) {
-        printf("\n==========================================\n");
-        printf("   VITÓRIA! Voce derrotou o %s!\n", m->nome);
-        printf("==========================================\n");
-        ganharXP(p, m->xpRecompensa);
-        return 1;
-    } else {
-        printf("\n==========================================\n");
-        printf("   DERROTA... Voce foi vencido pelo %s.\n", m->nome);
-        printf("==========================================\n");
-        return 0;
+    if (p->vida <= 0) {
+        printf("\n>> DERROTA! %s venceu.\n", m->nome);
+        return COMBATE_DERROTA;
     }
+    printf("\n>> VITORIA! %s foi derrotado!\n", m->nome);
+    ganharXP(p, m->xpRecompensa);
+    aplicarBonusAleatorio(p);
+    return COMBATE_VITORIA;
 }

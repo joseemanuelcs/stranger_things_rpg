@@ -1,27 +1,26 @@
 #ifndef FASE_H
 #define FASE_H
-
 #include "personagem.h"
 
-typedef enum {
-    CASA_VAZIA,
-    CASA_CURA,
-    CASA_ARMADILHA,
-    CASA_MONSTRO,
-    CASA_CHEFÃO
-} TipoCasa;
+#define TOTAL_CASAS 20
+#define TOTAL_OBJETIVOS 3
 
+typedef enum { CASA_VAZIA, CASA_CURA, CASA_ARMADILHA, CASA_MONSTRO, CASA_OBJETIVO, CASA_CHEFE } TipoCasa;
 typedef struct {
-    int posicaoAtual;
-    int totalCasas;
-    TipoCasa mapa[20];
-    int bateriasColetadas; // Missão principal: juntar 3 baterias
+    int faseAtual, posicaoAtual, totalCasas;
+    TipoCasa mapa[TOTAL_CASAS];
+    int objetivosColetados, objetivosEncontrados[TOTAL_CASAS];
+    int chefeDerrotado;
+    int monstrosDerrotados[3];
 } Tabuleiro;
 
-// Protótipos das funções
-void inicializarTabuleiro(Tabuleiro *t);
+void iniciarNovaFase(Tabuleiro *t, int numeroFase);
 int rolarDado(void);
 void desenharTabuleiro(const Tabuleiro *t);
-void executarEventoCasa(Tabuleiro *t, Personagem *p);
+void coletarObjetivos(Tabuleiro *t, int posicaoAnterior);
+int executarEventoCasa(Tabuleiro *t, Personagem *p);
+int missaoCumprida(const Tabuleiro *t);
+const char *nomeObjetivo(int fase);
+const char *nomeChefe(int fase);
 
 #endif

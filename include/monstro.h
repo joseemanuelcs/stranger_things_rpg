@@ -2,16 +2,13 @@
 #define MONSTRO_H
 
 typedef struct {
-    char nome[30];
-    int vida;
-    int ataque;
-    int defesa;
-    int xpRecompensa;
+    char nome[50];
+    char descricao[120];
+    int vida, ataque, defesa, nivel, xpRecompensa;
 } Monstro;
 
-Monstro criarDemocao(void);
-Monstro criarDemogorgon(void);
-Monstro criarVecna(void);
+Monstro criarMonstro(int fase, int indice);
 void receberDanoMonstro(Monstro *m, int dano);
+void exibirMonstro(const Monstro *m);
 
 #endif

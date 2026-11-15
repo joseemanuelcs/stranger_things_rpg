@@ -2,48 +2,66 @@
 #include <stdlib.h>
 #include <time.h>
 #include "personagem.h"
-#include "monstro.h"
 #include "fase.h"
+#include "entrada.h"
 
 int main(void) {
-    srand((unsigned int)time(NULL));
-
-    printf("==========================================\n");
-    printf("   STRANGER THINGS: ESCAPE FROM HAWKINS   \n");
-    printf("==========================================\n");
-
     Personagem jogador;
-    criarPersonagem(&jogador);
-
     Tabuleiro mapa;
-    inicializarTabuleiro(&mapa);
-
-    // Loop do mapa: anda ate chegar a ultima casa
-    while (mapa.posicaoAtual < mapa.totalCasas - 1 && jogador.vida > 0) {
-        exibirStatus(&jogador);
-        desenharTabuleiro(&mapa);
-
-        printf("\nPressione ENTER para rolar o dado (d6)...");
-        getchar(); getchar();
-
-        int dado = rolarDado();
-        printf("\n>> Voce tirou %d no dado!\n", dado);
-
-        mapa.posicaoAtual += dado;
-        if (mapa.posicaoAtual >= mapa.totalCasas - 1) {
-            mapa.posicaoAtual = mapa.totalCasas - 1;
+    int fase, dado, anterior;
+    srand((unsigned int)time(NULL));
+    limparTela();
+    puts("==========================================");
+    puts("   STRANGER THINGS: ESCAPE FROM HAWKINS");
+    puts("==========================================");
+    if (!criarPersonagem(&jogador)) {
+        puts("Entrada encerrada. Jogo finalizado.");
+        return 1;
+    }
+    for (fase = 1; fase <= 3 && jogador.vida > 0; fase++) {
+        limparTela();
+        iniciarNovaFase(&mapa, fase);
+        if (!esperarEnter("\nPressione ENTER para iniciar a fase...")) return 1;
+        while (jogador.vida > 0 && !missaoCumprida(&mapa)) {
+            limparTela();
+            exibirStatus(&jogador);
+            desenharTabuleiro(&mapa);
+            if (!esperarEnter("\nPressione ENTER para rolar o dado (d6)...")) return 1;
+            dado = rolarDado();
+            printf("\n>> Voce tirou %d no dado!\n", dado);
+            anterior = mapa.posicaoAtual;
+            mapa.posicaoAtual += dado;
+            if (mapa.posicaoAtual >= mapa.totalCasas) mapa.posicaoAtual = mapa.totalCasas - 1;
+            coletarObjetivos(&mapa, anterior);
+            if (!executarEventoCasa(&mapa, &jogador)) return 1;
+            if (mapa.posicaoAtual == mapa.totalCasas - 1 && !missaoCumprida(&mapa) && jogador.vida > 0) {
+                /* O jogador tem uma nova tentativa contra o chefe, sem avancar alem do tabuleiro. */
+                mapa.posicaoAtual = mapa.totalCasas - 4;
+                puts("\n>> Voce recuou tres casas para tentar novamente.");
+            }
+            if (!esperarEnter("\nPressione ENTER para continuar...")) return 1;
         }
-
-        executarEventoCasa(&mapa, &jogador);
+        if (jogador.vida > 0) {
+            limparTela();
+            printf("\n==========================================\n  FASE %d CONCLUIDA!\n==========================================\n", fase);
+            printf("Missao concluida: 3 %s e %s derrotado!\n", nomeObjetivo(fase), nomeChefe(fase));
+            exibirStatus(&jogador);
+            if (fase < 3) {
+                /* Pequena recuperacao entre fases, sem perder XP e atributos. */
+                jogador.vida += 30;
+                if (jogador.vida > jogador.vidaMax) jogador.vida = jogador.vidaMax;
+                puts("\nVoce recuperou ate 30 de vida antes da proxima fase.");
+                if (!esperarEnter("Pressione ENTER para continuar...")) return 1;
+            }
+        }
     }
-
     if (jogador.vida > 0) {
-        printf("\n==========================================\n");
-        printf("   VOCE CHEGOU AO FINAL DO MAPA!   \n");
-        printf("==========================================\n");
+        puts("\n==========================================");
+        puts("   VITORIA FINAL! HAWKINS FOI SALVA!");
+        puts("==========================================");
+        exibirStatus(&jogador);
     } else {
-        printf("\n>> GAME OVER! O Mundo Invertido consumiu voce...\n");
+        puts("\n>> GAME OVER! O Mundo Invertido consumiu voce...");
     }
-
     return 0;
 }
